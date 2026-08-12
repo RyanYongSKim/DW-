@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f1eb">
+  <title>마감선 — 거래처 업무 관리</title>
+  <link rel="stylesheet" href="assets/css/styles.css">
+  <link rel="stylesheet" href="assets/components/curved-input.css">
+  <link rel="stylesheet" href="assets/components/scroll-stack.css">
+  <link rel="stylesheet" href="assets/components/orbiting-items-3d.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="site-header">
+      <a class="brand" href="#" aria-label="마감선 홈">
+        <span class="brand-mark" aria-hidden="true">✓</span>
+        <span>마감선</span>
+      </a>
+      <div class="today" id="today"></div>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="page-title">
+        <div>
+          <p class="eyebrow">거래처 업무 관리</p>
+          <h1 id="page-title">오늘의 마감을<br><em>놓치지 마세요.</em></h1>
+          <p class="hero-copy">거래처 업무를 한곳에 모으고, 가장 급한 일부터 차분히 처리하세요.</p>
+        </div>
+        <div class="summary-card" aria-label="업무 현황">
+          <div id="status-orbit">
+            <div class="orbiting-items-3d__center">
+              <span>남은 업무<strong id="open-count">0</strong></span>
+            </div>
+          </div>
+          <p id="urgent-summary">급한 업무가 없습니다</p>
+        </div>
+      </section>
+
+      <section class="add-panel" aria-labelledby="add-heading">
+        <div class="section-heading">
+          <span class="section-number">01</span>
+          <div>
+            <h2 id="add-heading">새 업무 등록</h2>
+            <p>해야 할 일을 빠르게 기록하세요.</p>
+          </div>
+        </div>
+        <form id="task-form" novalidate>
+          <div class="field">
+            <label for="client">거래처명</label>
+            <input id="client" name="client" type="text" placeholder="예: 오프화이트" autocomplete="organization">
+            <small class="error" id="client-error"></small>
+          </div>
+          <div class="field field-wide">
+            <label for="task">처리할 업무</label>
+            <input id="task" name="task" type="text" placeholder="예: 8월 정산서 전달">
+            <small class="error" id="task-error"></small>
+          </div>
+          <div class="field field-order">
+            <label for="order">접수 번호</label>
+            <input id="order" name="order" type="number" min="1" step="1" inputmode="numeric" placeholder="거래처별 자동 제안">
+            <small class="error" id="order-error"></small>
+          </div>
+          <div class="field">
+            <label for="deadline">처리 마감시간</label>
+            <input id="deadline" name="deadline" type="datetime-local">
+            <small class="error" id="deadline-error"></small>
+          </div>
+          <div class="form-actions">
+            <button class="add-button" type="submit">
+              <span aria-hidden="true">＋</span> <span id="submit-label">업무 추가</span>
+            </button>
+            <button class="edit-cancel-button" id="edit-cancel" type="button" hidden>수정 취소</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="task-section" aria-labelledby="tasks-heading">
+        <div class="task-search" id="task-search" aria-label="거래처 또는 업무 검색"></div>
+        <div class="task-toolbar">
+          <div class="section-heading">
+            <span class="section-number">02</span>
+            <div>
+              <h2 id="tasks-heading">진행 업무</h2>
+              <p>마감이 가까운 순서로 정리했어요.</p>
+            </div>
+          </div>
+          <div class="filters" role="group" aria-label="업무 표시 필터">
+            <button class="filter is-active" type="button" data-filter="open">미처리 <span id="filter-open-count">0</span></button>
+            <button class="filter" type="button" data-filter="cancelled">취소됨 <span id="filter-cancelled-count">0</span></button>
+            <button class="filter" type="button" data-filter="all">진행·취소</button>
+          </div>
+        </div>
+
+        <div id="task-list" class="task-list" aria-live="polite"></div>
+      </section>
+
+      <section class="completed-section" aria-labelledby="completed-heading">
+        <div class="task-toolbar">
+          <div class="section-heading">
+            <span class="section-number">03</span>
+            <div>
+              <h2 id="completed-heading">처리된 업무</h2>
+              <p>완료한 내용을 기록으로 확인하고 후속 업무를 이어서 등록할 수 있어요.</p>
+            </div>
+          </div>
+          <span class="completed-count">총 <strong id="completed-count">0</strong>건</span>
+        </div>
+        <div id="completed-task-list" class="completed-task-list" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <footer><span>마감선</span><p>오늘 할 일을 오늘 끝내는 가장 단순한 방법.</p></footer>
+  </div>
+  <template id="task-template">
+    <article class="task-card">
+      <div class="status-rail"></div>
+      <div class="task-main">
+        <div class="task-meta">
+          <span class="order-badge"></span>
+          <span class="client-name"></span>
+          <span class="status-badge"></span>
+        </div>
+        <h3 class="task-title"></h3>
+        <div class="deadline-row">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+          <span class="deadline-text"></span>
+        </div>
+      </div>
+      <div class="task-actions">
+        <button class="edit-button" type="button">수정</button>
+        <button class="cancel-button" type="button">업무 취소</button>
+        <button class="delete-button" type="button">삭제</button>
+        <button class="follow-up-button" type="button">후속 업무 추가</button>
+        <button class="complete-button" type="button"><span aria-hidden="true">✓</span> 처리</button>
+      </div>
+    </article>
+  </template>
+  <script src="assets/components/curved-input.js"></script>
+  <script src="assets/components/scroll-stack.js"></script>
+  <script src="assets/components/orbiting-items-3d.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>

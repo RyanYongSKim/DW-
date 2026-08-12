@@ -1,0 +1,36 @@
+.scroll-stack {
+  position: relative;
+  isolation: isolate;
+}
+
+.scroll-stack-card {
+  position: sticky;
+  top: var(--scroll-stack-top, 20px);
+  z-index: var(--scroll-stack-index, 1);
+  transform-origin: top center;
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+  will-change: transform, filter;
+  box-shadow: 0 12px 30px rgba(24, 35, 31, .09);
+}
+
+.scroll-stack-card + .scroll-stack-card {
+  margin-top: var(--scroll-stack-distance, 34px);
+}
+
+@media (max-width: 620px) {
+  .scroll-stack-card {
+    top: var(--scroll-stack-mobile-top, 10px);
+    will-change: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-stack-card {
+    position: relative;
+    top: auto;
+    transform: none !important;
+    filter: none !important;
+    will-change: auto;
+  }
+}
