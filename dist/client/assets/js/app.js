@@ -410,7 +410,11 @@
   function saveTasks({ forceCloud = false, reportError = false } = {}) {
     const clean = tasks.map(({ _lastStatus, ...task }) => task);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(clean));
-    if (!window.taskCloud?.enabled || (!cloudReady && !forceCloud)) return Promise.resolve(false);
+    if (!window.taskCloud?.enabled) {
+      if (reportError) return Promise.reject(new Error('Supabase 연결을 사용할 수 없습니다.'));
+      return Promise.resolve(false);
+    }
+    if (!cloudReady && !forceCloud) return Promise.resolve(false);
 
     const request = cloudSaveQueue
       .catch(() => undefined)
