@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>거래처 업무 마감 관리 도구 PRD</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --background: #f4f6f8;
+      --paper: #ffffff;
+      --text: #17202a;
+      --muted: #5f6b76;
+      --line: #dce2e8;
+      --accent: #2257d7;
+      --accent-soft: #edf3ff;
+      --warning: #a94800;
+      --warning-soft: #fff2e7;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--background);
+      color: var(--text);
+      font-family: "Pretendard", "Noto Sans KR", "Malgun Gothic", sans-serif;
+      font-size: 16px;
+      line-height: 1.75;
+      word-break: keep-all;
+    }
+
+    main {
+      width: min(920px, calc(100% - 32px));
+      margin: 40px auto;
+      padding: 56px 64px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: 0 18px 50px rgba(25, 39, 52, 0.08);
+    }
+
+    header {
+      padding-bottom: 28px;
+      border-bottom: 2px solid var(--text);
+    }
+
+    h1, h2, h3 { line-height: 1.35; }
+    h1 { margin: 0 0 12px; font-size: clamp(30px, 5vw, 44px); letter-spacing: -0.04em; }
+    h2 { margin: 52px 0 18px; padding-bottom: 10px; border-bottom: 1px solid var(--line); font-size: 25px; }
+    h3 { margin: 28px 0 10px; font-size: 19px; color: var(--accent); }
+    p { margin: 10px 0; }
+    ul, ol { margin: 10px 0; padding-left: 24px; }
+    li + li { margin-top: 6px; }
+    code { padding: 2px 6px; border-radius: 5px; background: #eef1f4; font-family: inherit; font-size: 0.94em; }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .summary {
+      margin: 26px 0 0;
+      padding: 20px 22px;
+      background: var(--accent-soft);
+      border-left: 5px solid var(--accent);
+      border-radius: 10px;
+      font-size: 17px;
+      font-weight: 700;
+    }
+
+    .meta {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin: 24px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .meta li {
+      margin: 0;
+      padding: 14px 16px;
+      background: #f7f9fb;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+    }
+
+    .meta strong { display: block; margin-bottom: 2px; font-size: 13px; color: var(--muted); }
+
+    .status-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      padding: 0;
+      list-style: none;
+    }
+
+    .status-list li {
+      margin: 0;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+    }
+
+    .note {
+      padding: 16px 18px;
+      background: var(--warning-soft);
+      border-left: 4px solid var(--warning);
+      border-radius: 8px;
+    }
+
+    footer {
+      margin-top: 56px;
+      padding-top: 20px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    @media (max-width: 680px) {
+      main { width: 100%; margin: 0; padding: 32px 22px; border: 0; border-radius: 0; box-shadow: none; }
+      .meta, .status-list { grid-template-columns: 1fr; }
+      h2 { margin-top: 40px; }
+    }
+
+    @media print {
+      body { background: #fff; font-size: 11pt; }
+      main { width: 100%; margin: 0; padding: 0; border: 0; box-shadow: none; }
+      h2, h3 { break-after: avoid; }
+      li, .summary, .meta li, .status-list li { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <p class="eyebrow">Product Requirements Document</p>
+      <h1>거래처 업무 마감 관리 도구</h1>
+      <p class="summary">여러 거래처의 업무를 동시에 진행하는 사람이 거래처별 업무를 빠짐없이 기록하고, 마감시간이 가까운 순서대로 처리하도록 돕는 도구다.</p>
+      <ul class="meta">
+        <li><strong>제품명</strong>거래처 업무 마감 관리 도구</li>
+        <li><strong>문서 상태</strong>MVP 초안</li>
+        <li><strong>제작 가능 시간</strong>2시간</li>
+      </ul>
+    </header>
+
+    <section>
+      <h2>1. 문서 개요</h2>
+      <p><strong>목적:</strong> 여러 거래처에서 동시에 발생하는 업무를 빠짐없이 기록하고, 마감시간이 가까운 업무부터 처리할 수 있게 한다.</p>
+    </section>
+
+    <section>
+      <h2>2. 대상과 문제</h2>
+      <h3>대상</h3>
+      <p>여러 거래처의 업무를 동시에 진행하며, 같은 거래처에서도 여러 업무를 함께 처리하는 사람이다.</p>
+      <h3>현재 겪는 문제</h3>
+      <ul>
+        <li>여러 업무를 동시에 처리해 업무가 헷갈리거나 누락되는 일이 생긴다.</li>
+        <li>다이어리와 휴대폰 캘린더에 기록하고 기존 메모를 다시 확인하지만, 가끔 업무를 빠뜨린다.</li>
+        <li>같은 거래처에서 서로 다른 업무가 동시에 생기면 무엇을 먼저 처리해야 하는지 판단하기 어렵다.</li>
+      </ul>
+      <h3>사용자 목표</h3>
+      <p>거래처별 업무를 빠르게 기록하고 전체 미완료 업무를 마감시간순으로 확인하여, 마감이 가까운 업무부터 순서대로 처리한다.</p>
+    </section>
+
+    <section>
+      <h2>3. MVP 핵심 기능</h2>
+      <h3>3.1 업무 빠른 입력</h3>
+      <ul>
+        <li>첫 화면에 <code>거래처명</code>, <code>처리할 업무</code>, <code>처리 마감시간</code> 입력 칸과 <code>추가</code> 버튼을 표시한다.</li>
+        <li>세 항목을 모두 입력하고 <code>추가</code> 버튼을 누르면 새로운 업무가 등록된다.</li>
+        <li>같은 거래처에서도 서로 다른 업무를 각각 등록할 수 있다.</li>
+        <li>입력하지 않은 항목이 있으면 업무를 추가하지 않고 해당 입력 칸에 안내 문구를 표시한다.</li>
+      </ul>
+      <h3>3.2 마감시간순 업무 목록</h3>
+      <ul>
+        <li>등록된 미완료 업무는 거래처와 관계없이 마감시간이 가까운 순서대로 표시한다.</li>
+        <li>각 업무에는 거래처명, 업무 내용, 마감시간, 현재 상태와 <code>처리</code> 버튼을 표시한다.</li>
+        <li>같은 거래처의 업무는 거래처명이 같게 표시되지만 각각 독립된 업무로 관리한다.</li>
+      </ul>
+      <h3>3.3 마감 상태 표시</h3>
+      <ul>
+        <li>마감까지 30분보다 많이 남은 업무는 <code>진행 중</code>으로 표시한다.</li>
+        <li>마감 30분 전부터 해당 업무를 최대 3회 천천히 강조한 뒤, <code>마감 임박</code> 문구와 강조 표시를 유지한다.</li>
+        <li>마감시간이 지난 미완료 업무는 목록 최상단에 배치하고 <code>기한 지남</code> 문구를 표시한다.</li>
+        <li>상태는 색상만으로 구분하지 않고 상태 문구를 함께 표시한다.</li>
+        <li>앱을 열어 둔 상태에서만 마감 상태가 화면에 반영되며, 앱 밖으로 별도의 알림을 보내지 않는다.</li>
+      </ul>
+      <h3>3.4 업무 완료 처리</h3>
+      <ul>
+        <li>실제 업무를 끝낸 사용자가 해당 업무의 <code>처리</code> 버튼을 누르면 상태가 <code>처리 완료</code>로 바뀐다.</li>
+        <li>완료된 업무는 미완료 업무 아래로 이동하고 흐리게 표시한다.</li>
+        <li>완료된 업무는 마감 임박 및 기한 지남 대상에서 제외한다.</li>
+      </ul>
+      <h3>3.5 자동 저장</h3>
+      <ul>
+        <li>입력한 업무와 처리 상태는 현재 브라우저에 자동 저장한다.</li>
+        <li>같은 브라우저에서 새로고침하거나 다시 열어도 저장한 업무와 처리 상태가 유지된다.</li>
+        <li>로그인 없이 사용하는 MVP이므로 다른 기기나 다른 브라우저와 자료를 공유하지 않는다.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>4. 사용자 흐름</h2>
+      <ol>
+        <li>사용자는 첫 화면에서 거래처명, 처리할 업무, 처리 마감시간 입력 칸과 <code>추가</code> 버튼을 본다.</li>
+        <li>세 항목을 입력하고 <code>추가</code> 버튼을 누르면 업무가 마감시간순 목록에 표시된다.</li>
+        <li>같은 거래처에서 다른 업무가 생기면 거래처명과 새로운 업무 및 마감시간을 같은 방식으로 추가한다.</li>
+        <li>사용자는 목록 상단의 <code>기한 지남</code> 또는 <code>마감 임박</code> 업무부터 실제로 처리한다.</li>
+        <li>실제 업무를 끝낸 뒤 해당 업무의 <code>처리</code> 버튼을 누르고, 업무가 목록 아래의 <code>처리 완료</code> 상태로 이동한 것을 확인한다.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>5. 화면 구성</h2>
+      <h3>상단: 업무 입력 영역</h3>
+      <ul><li>거래처명 입력 칸</li><li>처리할 업무 입력 칸</li><li>처리 마감시간 입력 칸</li><li><code>추가</code> 버튼</li></ul>
+      <h3>하단: 전체 업무 목록</h3>
+      <ul class="status-list">
+        <li><strong>기한 지남</strong><br>마감시간이 지난 미완료 업무</li>
+        <li><strong>마감 임박</strong><br>마감까지 30분 이하로 남은 미완료 업무</li>
+        <li><strong>진행 중</strong><br>마감까지 30분보다 많이 남은 미완료 업무</li>
+        <li><strong>처리 완료</strong><br>사용자가 <code>처리</code> 버튼을 누른 업무</li>
+      </ul>
+      <p class="note">미완료 업무는 <strong>기한 지남</strong>을 가장 위에 표시하고, 나머지는 마감시간이 가까운 순서로 표시하며, 완료 업무는 목록 가장 아래에 표시한다.</p>
+    </section>
+
+    <section>
+      <h2>6. 데이터 항목</h2>
+      <p>업무 한 건은 거래처명, 처리할 업무, 처리 마감시간, 현재 상태, 등록 시각과 완료 시각을 가진다.</p>
+    </section>
+
+    <section>
+      <h2>7. 완료 기준</h2>
+      <ul>
+        <li>여러 거래처의 업무를 각각 등록할 수 있다.</li>
+        <li>같은 거래처의 업무를 여러 개 등록할 수 있다.</li>
+        <li>거래처명, 업무 내용 또는 마감시간이 비어 있으면 등록되지 않는다.</li>
+        <li>미완료 업무가 정해진 우선순위와 마감시간순으로 표시된다.</li>
+        <li>마감 30분 전 업무에 <code>마감 임박</code> 문구가 표시된다.</li>
+        <li>마감시간이 지난 미완료 업무에 <code>기한 지남</code> 문구가 표시된다.</li>
+        <li><code>처리</code> 버튼을 누른 해당 업무만 <code>처리 완료</code>로 바뀌고 목록 아래로 이동한다.</li>
+        <li>새로고침하거나 같은 브라우저를 다시 열어도 업무와 처리 상태가 유지된다.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>8. 이번 MVP에서 제외할 것</h2>
+      <ul>
+        <li>프로젝트 단계 및 프로젝트별 묶음</li><li>거래처 전체 완료와 프로젝트 자동 완료</li><li>업무 수정 및 삭제</li><li>업무 순서 수동 변경</li><li>업무별 추가 메모</li><li>다이어리 내용 일괄 입력</li><li>휴대폰 캘린더 연결</li><li>앱을 닫았을 때 보내는 푸시 알림</li><li>여러 기기 간 자료 동기화</li><li>로그인과 결제</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>9. 추후 계획</h2>
+      <h3>우선 검토</h3>
+      <ul><li>잘못 입력한 업무의 수정 및 삭제</li><li>완료 업무만 모아 보거나 숨기는 기능</li><li>사용자가 마감 임박 기준시간을 직접 정하는 기능</li><li>거래처명을 다시 입력하지 않고 기존 거래처를 선택하는 기능</li></ul>
+      <h3>다음 단계</h3>
+      <ul><li>거래처 아래에 프로젝트를 만들고 프로젝트별로 업무를 구분하는 기능</li><li>업무별 추가 메모 및 업무 순서 수동 변경</li><li>다이어리 내용을 한꺼번에 입력해 여러 업무로 등록하는 기능</li><li>휴대폰 캘린더 연결 및 앱을 닫았을 때 보내는 알림</li><li>로그인과 여러 기기 간 자료 동기화</li></ul>
+    </section>
+
+    <section>
+      <h2>10. MVP 원칙</h2>
+      <ul>
+        <li>거래처는 업무를 구분하기 위한 정보로 사용한다.</li>
+        <li>첫 화면의 중심은 거래처별 화면이 아니라 전체 마감시간순 업무 목록으로 한다.</li>
+        <li>실제로 처리해야 하는 업무 한 건을 완료의 최소 단위로 삼는다.</li>
+        <li>2시간 안에 핵심 흐름이 작동하도록 디자인 완성도보다 입력, 정렬, 상태 표시, 완료 처리와 저장을 우선한다.</li>
+      </ul>
+    </section>
+
+    <footer>거래처 업무 마감 관리 도구 · MVP PRD</footer>
+  </main>
+</body>
+</html>

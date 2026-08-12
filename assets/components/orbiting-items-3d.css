@@ -1,0 +1,53 @@
+.orbiting-items-3d {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 210px;
+  isolation: isolate;
+}
+
+.orbiting-items-3d__center {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 104px;
+  height: 104px;
+  border: 1px solid rgba(255, 255, 255, .2);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #1ec3b8, #129990 58%, #0b6862);
+  box-shadow: 0 0 32px rgba(18, 153, 144, .35);
+  text-align: center;
+}
+
+.orbiting-items-3d__item {
+  position: absolute;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  min-width: 58px;
+  min-height: 42px;
+  padding: 7px 9px;
+  border: 1px solid rgba(255, 255, 255, .16);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .25);
+  backdrop-filter: blur(8px);
+  color: white;
+  font-size: 10px;
+  line-height: 1.25;
+  text-align: center;
+  transform: translate(-50%, -50%);
+  will-change: left, top, transform;
+}
+
+.orbiting-items-3d__item strong { display: block; font-size: 15px; }
+.orbiting-items-3d__item[data-status="progress"] { border-color: #44acff; }
+.orbiting-items-3d__item[data-status="urgent"] { border-color: #b331f1; }
+.orbiting-items-3d__item[data-status="overdue"] { border-color: #e03f4f; }
+.orbiting-items-3d__item[data-status="done"] { border-color: #129990; }
+
+@media (prefers-reduced-motion: reduce) {
+  .orbiting-items-3d__item { will-change: auto; }
+}
