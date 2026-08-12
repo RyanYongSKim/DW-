@@ -1,6 +1,6 @@
 {
-  "name": "YS-DW 업무 확인 리스트",
-  "short_name": "YS-DW 업무",
+  "name": "YS-DW 처리업무 확인 리스트",
+  "short_name": "YS-DW 처리업무",
   "description": "PC와 휴대폰에서 자동 동기화되는 업무 확인 리스트",
   "lang": "ko",
   "start_url": "/",

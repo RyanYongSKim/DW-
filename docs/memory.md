@@ -322,3 +322,23 @@
 - `docs/prd.md`
 - `docs/design.md`
 - `docs/memory.md`
+
+## 2026-08-13 08:34:33 KST
+
+### 제품명 문구 변경
+
+- 사이트 상단 브랜드와 브라우저 제목을 `YS-DW 처리업무 확인 리스트`로 변경했다.
+- 설치 앱 이름, 화면 하단 제품명과 제품 문서 제목도 같은 문구로 통일했다.
+- 기존 설치 앱이 새 이름을 갱신하도록 서비스 워커 캐시 버전을 변경했다.
+
+### 영향 파일
+
+- `index.html`
+- `manifest.webmanifest`
+- `service-worker.js`
+- `dist/client/index.html`
+- `dist/client/manifest.webmanifest`
+- `dist/client/service-worker.js`
+- `docs/prd.md`
+- `docs/design.md`
+- `docs/memory.md`
