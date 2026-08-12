@@ -277,3 +277,20 @@
 - `docs/prd.md`
 - `docs/design.md`
 - `docs/memory.md`
+
+## 2026-08-12 17:30:00 KST
+
+### 휴대폰 마감 달력 선택 버튼 추가
+
+- `처리 마감시간` 옆에 `달력 열기` 버튼을 추가해 휴대폰에서 기기의 기본 날짜·시간 선택기를 직접 열 수 있게 했다.
+- 브라우저가 `showPicker()`를 지원하면 이를 사용하고, 지원하지 않으면 마감시간 입력란의 기본 선택 동작으로 전환한다.
+- 360px 모바일 폭에서도 날짜 입력란과 달력 버튼이 같은 줄에서 화면 밖으로 나가지 않도록 반응형 너비를 적용했다.
+
+### 영향 파일
+
+- `index.html`
+- `assets/css/styles.css`
+- `assets/js/app.js`
+- `docs/prd.md`
+- `docs/design.md`
+- `docs/memory.md`

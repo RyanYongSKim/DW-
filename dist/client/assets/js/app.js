@@ -20,10 +20,24 @@
   const exportButton = document.querySelector('#export-data');
   const importButton = document.querySelector('#import-data');
   const importFileInput = document.querySelector('#import-data-file');
+  const deadlineInput = document.querySelector('#deadline');
+  const deadlinePickerButton = document.querySelector('#open-deadline-picker');
 
   exportButton.addEventListener('click', exportTasks);
   importButton.addEventListener('click', () => importFileInput.click());
   importFileInput.addEventListener('change', importTasks);
+  deadlinePickerButton.addEventListener('click', () => {
+    try {
+      if (typeof deadlineInput.showPicker === 'function') deadlineInput.showPicker();
+      else {
+        deadlineInput.focus();
+        deadlineInput.click();
+      }
+    } catch {
+      deadlineInput.focus();
+      deadlineInput.click();
+    }
+  });
   let editingId = null;
   const newlyUrgent = new Set();
 

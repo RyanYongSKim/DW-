@@ -75,7 +75,13 @@
           </div>
           <div class="field">
             <label for="deadline">처리 마감시간</label>
-            <input id="deadline" name="deadline" type="datetime-local">
+            <div class="deadline-picker">
+              <input id="deadline" name="deadline" type="datetime-local">
+              <button class="calendar-picker-button" id="open-deadline-picker" type="button" aria-controls="deadline">
+                <span aria-hidden="true">▦</span>
+                <span>달력 열기</span>
+              </button>
+            </div>
             <small class="error" id="deadline-error"></small>
           </div>
           <div class="form-actions">
