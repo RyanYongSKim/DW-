@@ -254,3 +254,26 @@
 - `assets/js/app.js`
 - `docs/prd.md`
 - `docs/memory.md`
+
+## 2026-08-12 17:12:00 KST
+
+### Supabase 이메일 인증 링크로 PC·핸드폰 업무 연결
+
+- 강제 로그인 화면 없이 익명 사용자도 기존 업무 화면과 핵심 기능을 바로 사용할 수 있게 유지했다.
+- 업무가 있는 PC의 익명 계정에 이메일을 연결하는 `현재 업무 연결`과 다른 기기에서 같은 이메일로 로그인하는 `업무 불러오기`를 추가했다.
+- 비밀번호 대신 Supabase 이메일 인증 링크를 사용하고 인증 세션을 브라우저에 유지해 이후 자동 연결되도록 구성했다.
+- 기존 익명 사용자는 같은 사용자 ID에 이메일 인증 수단을 연결하므로 기존 `tasks.user_id` 소유권과 서버 업무가 유지된다.
+- 브라우저 캐시를 사용자 ID별 키로 분리하고 기존 공용 캐시는 최초 사용자에게 한 번만 이전해 데이터 혼입을 방지했다.
+- Supabase Authentication에서 수동 계정 연결을 활성화하고 Site URL을 실제 배포 주소로 수정했다.
+- 헤더에 브라우저 전용·연결 이메일 상태와 기기 연결·로그아웃 버튼을 추가하고 360px 모바일 폭에서 연결 창을 한 열로 배치했다.
+
+### 영향 파일
+
+- `index.html`
+- `assets/css/styles.css`
+- `assets/js/supabase-sync.js`
+- `assets/js/app.js`
+- `supabase/config.toml`
+- `docs/prd.md`
+- `docs/design.md`
+- `docs/memory.md`

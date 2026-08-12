@@ -2,13 +2,15 @@
   'use strict';
 
   const STORAGE_KEY = 'deadline-line-tasks-v1';
+  const STORAGE_MIGRATION_KEY = `${STORAGE_KEY}:account-migration`;
   const URGENT_MS = 30 * 60 * 1000;
   const form = document.querySelector('#task-form');
   const list = document.querySelector('#task-list');
   const completedList = document.querySelector('#completed-task-list');
   const template = document.querySelector('#task-template');
   const filterButtons = [...document.querySelectorAll('.filter')];
-  let tasks = loadTasks();
+  let tasks = [];
+  let accountStorageKey = null;
   let activeFilter = 'open';
   let searchQuery = '';
   let cloudReady = false;
@@ -24,8 +26,6 @@
   importFileInput.addEventListener('change', importTasks);
   let editingId = null;
   const newlyUrgent = new Set();
-
-  saveTasks();
 
   document.querySelector('#today').textContent = new Intl.DateTimeFormat('ko-KR', {
     year: 'numeric', month: 'long', day: 'numeric', weekday: 'long'
@@ -213,6 +213,7 @@
   }
 
   function render() {
+    window.taskCloud?.setTaskCount(tasks.length);
     const previousStatuses = new Map(tasks.map((task) => [task.id, task._lastStatus]));
     tasks.forEach((task) => {
       const current = getStatus(task);
@@ -393,9 +394,10 @@
     });
   }
 
-  function loadTasks() {
+  function loadTasks(storageKey = accountStorageKey) {
+    if (!storageKey) return [];
     try {
-      const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+      const parsed = JSON.parse(localStorage.getItem(storageKey) || '[]');
       return Array.isArray(parsed)
         ? parsed.map((task, index) => ({
             ...task,
@@ -409,7 +411,12 @@
 
   function saveTasks({ forceCloud = false, reportError = false } = {}) {
     const clean = tasks.map(({ _lastStatus, ...task }) => task);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(clean));
+    const storageKey = accountStorageKey || STORAGE_KEY;
+    localStorage.setItem(storageKey, JSON.stringify(clean));
+    if (!window.taskCloud?.user) {
+      if (reportError) return Promise.reject(new Error('서버 사용자를 확인할 수 없습니다.'));
+      return Promise.resolve(false);
+    }
     if (!window.taskCloud?.enabled) {
       if (reportError) return Promise.reject(new Error('Supabase 연결을 사용할 수 없습니다.'));
       return Promise.resolve(false);
@@ -429,12 +436,30 @@
   }
 
   async function hydrateFromCloud() {
-    if (!window.taskCloud?.enabled) return;
+    if (!window.taskCloud?.enabled) {
+      accountStorageKey = STORAGE_KEY;
+      tasks = loadTasks(accountStorageKey);
+      render();
+      cloudReady = true;
+      return;
+    }
     try {
+      await window.taskCloud.ready;
+      const user = window.taskCloud.user;
+      if (!user) {
+        accountStorageKey = STORAGE_KEY;
+        tasks = loadTasks(accountStorageKey);
+        render();
+        return;
+      }
+      accountStorageKey = `${STORAGE_KEY}:${user.id}`;
+      migrateLegacyTasksOnce(user.id);
+      tasks = loadTasks(accountStorageKey);
+      render();
       const remoteTasks = await window.taskCloud.load();
       if (remoteTasks?.length) {
         tasks = remoteTasks;
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+        localStorage.setItem(accountStorageKey, JSON.stringify(tasks));
         render();
       } else if (tasks.length) {
         await window.taskCloud.replaceAll(tasks);
@@ -444,6 +469,15 @@
     } finally {
       cloudReady = true;
     }
+  }
+
+  function migrateLegacyTasksOnce(userId) {
+    const migrationOwner = localStorage.getItem(STORAGE_MIGRATION_KEY);
+    if (migrationOwner) return;
+    localStorage.setItem(STORAGE_MIGRATION_KEY, userId);
+    if (localStorage.getItem(accountStorageKey) !== null) return;
+    const legacyTasks = localStorage.getItem(STORAGE_KEY);
+    if (legacyTasks !== null) localStorage.setItem(accountStorageKey, legacyTasks);
   }
 
   function exportTasks() {
