@@ -12,6 +12,8 @@
   let activeFilter = 'open';
   let searchQuery = '';
   let cloudReady = false;
+  let cloudHydrationPromise = Promise.resolve();
+  let cloudSaveQueue = Promise.resolve();
 
   const exportButton = document.querySelector('#export-data');
   const importButton = document.querySelector('#import-data');
@@ -53,7 +55,7 @@
     duration: 18000
   });
   render();
-  hydrateFromCloud();
+  cloudHydrationPromise = hydrateFromCloud();
 
   form.addEventListener('submit', (event) => {
     event.preventDefault();
@@ -405,12 +407,20 @@
     }
   }
 
-  function saveTasks() {
+  function saveTasks({ forceCloud = false, reportError = false } = {}) {
     const clean = tasks.map(({ _lastStatus, ...task }) => task);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(clean));
-    if (!cloudReady) return;
-    window.taskCloud?.replaceAll(clean).catch((error) => {
+    if (!window.taskCloud?.enabled || (!cloudReady && !forceCloud)) return Promise.resolve(false);
+
+    const request = cloudSaveQueue
+      .catch(() => undefined)
+      .then(() => window.taskCloud.replaceAll(clean));
+    cloudSaveQueue = request;
+
+    if (reportError) return request.then(() => true);
+    return request.then(() => true).catch((error) => {
       console.warn('Supabase 동기화에 실패해 브라우저에 저장했습니다.', error);
+      return false;
     });
   }
 
@@ -451,22 +461,39 @@
     event.target.value = '';
     if (!file) return;
 
+    let imported;
     try {
-      const imported = JSON.parse(await file.text());
+      imported = JSON.parse(await file.text());
       if (!Array.isArray(imported)) throw new Error('invalid');
       const valid = imported.every((task) => task && typeof task.client === 'string' && typeof task.task === 'string' && task.deadline);
       if (!valid) throw new Error('invalid');
-      if (!window.confirm(`업무 ${imported.length}건을 가져올까요?\n현재 저장된 업무는 가져온 데이터로 교체됩니다.`)) return;
+    } catch {
+      window.alert('올바른 마감선 업무 JSON 파일을 선택해 주세요.');
+      return;
+    }
+
+    if (!window.confirm(`업무 ${imported.length}건을 가져올까요?\n현재 저장된 업무는 가져온 데이터로 교체됩니다.`)) return;
+
+    const originalLabel = importButton.textContent;
+    importButton.disabled = true;
+    importButton.textContent = '서버에 저장 중…';
+
+    try {
+      await cloudHydrationPromise;
       tasks = imported.map((task, index) => ({
         ...task,
         order: Number.isInteger(Number(task.order)) && Number(task.order) > 0 ? Number(task.order) : index + 1
       }));
-      saveTasks();
       resetForm();
       render();
-      window.alert(`업무 ${tasks.length}건을 가져왔습니다.`);
-    } catch {
-      window.alert('올바른 마감선 업무 JSON 파일을 선택해 주세요.');
+      await saveTasks({ forceCloud: true, reportError: true });
+      window.alert(`업무 ${tasks.length}건을 가져와 서버에 저장했습니다.`);
+    } catch (error) {
+      console.warn('가져온 업무를 Supabase에 저장하지 못했습니다.', error);
+      window.alert('업무는 이 브라우저에 저장했지만 서버 저장에 실패했습니다. 인터넷 연결을 확인하고 다시 가져와 주세요.');
+    } finally {
+      importButton.disabled = false;
+      importButton.textContent = originalLabel;
     }
   }
 })();
