@@ -17,7 +17,14 @@
         <span class="brand-mark" aria-hidden="true">✓</span>
         <span>마감선</span>
       </a>
-      <div class="today" id="today"></div>
+      <div class="header-tools">
+        <div class="data-actions" aria-label="업무 데이터 관리">
+          <button class="data-button" id="export-data" type="button">데이터 내보내기</button>
+          <button class="data-button" id="import-data" type="button">데이터 가져오기</button>
+          <input id="import-data-file" type="file" accept="application/json,.json" hidden>
+        </div>
+        <div class="today" id="today"></div>
+      </div>
     </header>
 
     <main>

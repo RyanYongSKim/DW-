@@ -11,6 +11,14 @@
   let tasks = loadTasks();
   let activeFilter = 'open';
   let searchQuery = '';
+
+  const exportButton = document.querySelector('#export-data');
+  const importButton = document.querySelector('#import-data');
+  const importFileInput = document.querySelector('#import-data-file');
+
+  exportButton.addEventListener('click', exportTasks);
+  importButton.addEventListener('click', () => importFileInput.click());
+  importFileInput.addEventListener('change', importTasks);
   let editingId = null;
   const newlyUrgent = new Set();
 
@@ -398,5 +406,43 @@
   function saveTasks() {
     const clean = tasks.map(({ _lastStatus, ...task }) => task);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(clean));
+  }
+
+  function exportTasks() {
+    const clean = tasks.map(({ _lastStatus, ...task }) => task);
+    const blob = new Blob([JSON.stringify(clean, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const date = new Date().toISOString().slice(0, 10);
+    link.href = url;
+    link.download = `마감선-업무-${date}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  async function importTasks(event) {
+    const [file] = event.target.files;
+    event.target.value = '';
+    if (!file) return;
+
+    try {
+      const imported = JSON.parse(await file.text());
+      if (!Array.isArray(imported)) throw new Error('invalid');
+      const valid = imported.every((task) => task && typeof task.client === 'string' && typeof task.task === 'string' && task.deadline);
+      if (!valid) throw new Error('invalid');
+      if (!window.confirm(`업무 ${imported.length}건을 가져올까요?\n현재 저장된 업무는 가져온 데이터로 교체됩니다.`)) return;
+      tasks = imported.map((task, index) => ({
+        ...task,
+        order: Number.isInteger(Number(task.order)) && Number(task.order) > 0 ? Number(task.order) : index + 1
+      }));
+      saveTasks();
+      resetForm();
+      render();
+      window.alert(`업무 ${tasks.length}건을 가져왔습니다.`);
+    } catch {
+      window.alert('올바른 마감선 업무 JSON 파일을 선택해 주세요.');
+    }
   }
 })();

@@ -32,6 +32,9 @@ button:focus-visible,
 .brand:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
 .app-shell { width: min(1180px, calc(100% - 48px)); margin: 0 auto; }
 .site-header { height: 88px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #d4d0c6; }
+.header-tools, .data-actions { display: flex; align-items: center; gap: 8px; }
+.header-tools { gap: 18px; }
+.data-button { padding: 8px 10px; border: 1px solid #b7beb9; background: var(--paper); cursor: pointer; font-size: 11px; font-weight: 750; white-space: nowrap; }
 .brand { display: flex; align-items: center; gap: 11px; color: var(--ink); text-decoration: none; font-size: 20px; font-weight: 850; letter-spacing: -.04em; }
 .brand-mark { display: grid; place-items: center; width: 31px; height: 31px; border-radius: 50%; background: var(--green); color: white; font-size: 16px; }
 .today { color: var(--muted); font-size: 13px; font-weight: 650; letter-spacing: .02em; }
@@ -143,6 +146,10 @@ footer p { margin: 0; }
 @media (max-width: 620px) {
   .app-shell { width: min(100% - 28px, 1180px); }
   .site-header { height: 72px; }
+  .header-tools { gap: 8px; }
+  .today { display: none; }
+  .data-actions { gap: 4px; }
+  .data-button { min-width: 0; padding: 7px 6px; font-size: 10px; white-space: normal; }
   .today { display: none; }
   .hero { padding: 44px 0; }
   h1 { font-size: clamp(36px, 12vw, 46px); overflow-wrap: anywhere; }
