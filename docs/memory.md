@@ -342,3 +342,24 @@
 - `docs/prd.md`
 - `docs/design.md`
 - `docs/memory.md`
+
+## 2026-08-13 08:39:40 KST
+
+### 기한 지난 업무 별도 영역 추가
+
+- 마감시간이 지난 미처리 업무를 진행 업무에서 분리해 `기한 지난 업무` 영역에 표시하도록 변경했다.
+- 기한 지난 업무를 진행 업무보다 위에 배치하고 빨간색 건수 표시를 추가했다.
+- 상단 남은 업무 수에는 진행 업무와 기한 지난 업무를 모두 포함하고, 진행 업무 필터 수에는 기한이 남은 업무만 표시하도록 구분했다.
+- 검색, 수정, 취소, 삭제와 처리 기능을 기한 지난 업무 영역에서도 동일하게 사용할 수 있도록 유지했다.
+
+### 영향 파일
+
+- `index.html`
+- `assets/css/styles.css`
+- `assets/js/app.js`
+- `dist/client/index.html`
+- `dist/client/assets/css/styles.css`
+- `dist/client/assets/js/app.js`
+- `docs/prd.md`
+- `docs/design.md`
+- `docs/memory.md`

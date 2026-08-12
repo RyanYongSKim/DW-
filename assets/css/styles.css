@@ -188,7 +188,8 @@ form { display: grid; grid-template-columns: .9fr 1.35fr .55fr 1.05fr auto; gap:
 .add-button span { margin-right: 4px; font-size: 18px; font-weight: 400; }
 .add-button #submit-label { margin: 0; font-size: inherit; font-weight: inherit; }
 .edit-cancel-button { height: 50px; padding: 0 14px; border: 1px solid #b7beb9; background: white; cursor: pointer; font-size: 12px; font-weight: 800; white-space: nowrap; }
-.task-section { padding: 68px 0 90px; }
+.task-section { padding: 68px 0 70px; }
+.current-section { padding: 0 0 90px; }
 .task-search { width: min(450px, 100%); margin: 0 0 30px auto; }
 .task-toolbar { display: flex; justify-content: space-between; align-items: end; margin-bottom: 26px; }
 .filters { display: flex; gap: 4px; padding: 4px; background: #e4e0d8; }
@@ -202,7 +203,10 @@ form { display: grid; grid-template-columns: .9fr 1.35fr .55fr 1.05fr auto; gap:
 .loading-dot { display: block; width: 18px; height: 18px; margin: 0 auto 14px; border: 3px solid var(--line); border-top-color: var(--green); border-radius: 50%; animation: loading-spin .8s linear infinite; }
 @keyframes loading-spin { to { transform: rotate(360deg); } }
 .completed-section { padding: 0 0 90px; }
+.overdue-task-list { display: grid; gap: 10px; }
 .completed-task-list { display: grid; gap: 10px; }
+.overdue-count { padding: 9px 13px; background: var(--red-soft); color: var(--red); font-size: 12px; font-weight: 750; }
+.overdue-count strong { font-size: 16px; }
 .completed-count { padding: 9px 13px; background: var(--green-soft); color: #0b6862; font-size: 12px; font-weight: 750; }
 .completed-count strong { font-size: 16px; }
 .task-card { position: relative; display: grid; grid-template-columns: 5px 1fr auto; align-items: center; min-height: 132px; overflow: hidden; background: var(--yellow-soft); border: 1px solid var(--yellow); transition: translate .2s ease, box-shadow .2s ease; }

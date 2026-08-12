@@ -101,18 +101,33 @@
         </form>
       </section>
 
-      <section class="task-section" aria-labelledby="tasks-heading">
+      <section class="task-section" aria-labelledby="overdue-heading">
         <div class="task-search" id="task-search" aria-label="거래처 또는 업무 검색"></div>
         <div class="task-toolbar">
           <div class="section-heading">
             <span class="section-number">02</span>
             <div>
+              <h2 id="overdue-heading">기한 지난 업무</h2>
+              <p>마감시간이 지난 미처리 업무를 따로 모았어요.</p>
+            </div>
+          </div>
+          <span class="overdue-count">총 <strong id="overdue-count">0</strong>건</span>
+        </div>
+
+        <div id="overdue-task-list" class="overdue-task-list" aria-live="polite"></div>
+      </section>
+
+      <section class="current-section" aria-labelledby="tasks-heading">
+        <div class="task-toolbar">
+          <div class="section-heading">
+            <span class="section-number">03</span>
+            <div>
               <h2 id="tasks-heading">진행 업무</h2>
-              <p>마감이 가까운 순서로 정리했어요.</p>
+              <p>기한이 남은 업무를 마감이 가까운 순서로 정리했어요.</p>
             </div>
           </div>
           <div class="filters" role="group" aria-label="업무 표시 필터">
-            <button class="filter is-active" type="button" data-filter="open">미처리 <span id="filter-open-count">0</span></button>
+            <button class="filter is-active" type="button" data-filter="open">진행 중 <span id="filter-open-count">0</span></button>
             <button class="filter" type="button" data-filter="cancelled">취소됨 <span id="filter-cancelled-count">0</span></button>
             <button class="filter" type="button" data-filter="all">진행·취소</button>
           </div>
@@ -124,7 +139,7 @@
       <section class="completed-section" aria-labelledby="completed-heading">
         <div class="task-toolbar">
           <div class="section-heading">
-            <span class="section-number">03</span>
+            <span class="section-number">04</span>
             <div>
               <h2 id="completed-heading">처리된 업무</h2>
               <p>완료한 내용을 기록으로 확인하고 후속 업무를 이어서 등록할 수 있어요.</p>

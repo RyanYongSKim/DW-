@@ -9,6 +9,7 @@
   const URGENT_MS = 30 * 60 * 1000;
   const form = document.querySelector('#task-form');
   const list = document.querySelector('#task-list');
+  const overdueList = document.querySelector('#overdue-task-list');
   const completedList = document.querySelector('#completed-task-list');
   const template = document.querySelector('#task-template');
   const filterButtons = [...document.querySelectorAll('.filter')];
@@ -77,6 +78,14 @@
     baseScale: 0.92,
     blurAmount: 0
   });
+  const overdueScrollStack = new window.ScrollStack(overdueList, {
+    itemDistance: 34,
+    itemScale: 0.018,
+    itemStackDistance: 12,
+    stackPosition: 18,
+    baseScale: 0.92,
+    blurAmount: 0
+  });
   const statusOrbit = new window.OrbitingItems3D(document.querySelector('#status-orbit'), {
     radiusX: 37,
     radiusY: 22,
@@ -138,7 +147,7 @@
     render();
   }));
 
-  [list, completedList].forEach(container => container.addEventListener('click', (event) => {
+  [list, overdueList, completedList].forEach(container => container.addEventListener('click', (event) => {
     const button = event.target.closest('.complete-button, .edit-button, .cancel-button, .delete-button, .follow-up-button');
     if (!button) return;
     const task = tasks.find((item) => item.id === button.dataset.id);
@@ -253,11 +262,14 @@
     });
 
     const open = tasks.filter((task) => !task.completedAt && !task.cancelledAt);
+    const overdue = open.filter((task) => getStatus(task) === 'overdue');
+    const currentOpen = open.filter((task) => getStatus(task) !== 'overdue');
     const completed = tasks.filter((task) => task.completedAt);
     const cancelled = tasks.filter((task) => task.cancelledAt);
     document.querySelector('#open-count').textContent = open.length;
-    document.querySelector('#filter-open-count').textContent = open.length;
+    document.querySelector('#filter-open-count').textContent = currentOpen.length;
     document.querySelector('#filter-cancelled-count').textContent = cancelled.length;
+    document.querySelector('#overdue-count').textContent = overdue.length;
     document.querySelector('#completed-count').textContent = completed.length;
     const urgentCount = open.filter((task) => ['urgent', 'overdue'].includes(getStatus(task))).length;
     document.querySelector('#urgent-summary').textContent = urgentCount ? `확인이 필요한 업무 ${urgentCount}건` : '급한 업무가 없습니다';
@@ -269,9 +281,9 @@
     ]);
 
     const visible = sortTasks(tasks).filter((task) => {
-      if (activeFilter === 'open') return !task.completedAt && !task.cancelledAt;
+      if (activeFilter === 'open') return !task.completedAt && !task.cancelledAt && getStatus(task) !== 'overdue';
       if (activeFilter === 'cancelled') return Boolean(task.cancelledAt);
-      return !task.completedAt;
+      return !task.completedAt && getStatus(task) !== 'overdue';
     }).filter((task) => !searchQuery || `${task.client} ${task.task}`.toLocaleLowerCase('ko-KR').includes(searchQuery));
     list.replaceChildren();
     if (!visible.length) {
@@ -280,11 +292,23 @@
         : activeFilter === 'cancelled'
         ? ['취소된 업무가 없어요', '취소한 업무는 이곳에서 확인할 수 있어요.']
         : activeFilter === 'open'
-          ? ['남은 업무가 없어요', '새 업무를 등록하거나 잠시 여유를 즐겨보세요.']
+          ? ['진행 중인 업무가 없어요', '새 업무를 등록하거나 기한 지난 업무를 확인해 보세요.']
           : ['등록된 업무가 없어요', '위 입력란에서 첫 업무를 추가해 보세요.'];
       list.innerHTML = `<div class="empty-state"><div><span class="empty-icon">✓</span><strong>${message[0]}</strong><p>${message[1]}</p></div></div>`;
     } else {
       visible.forEach(task => renderTask(task, list, true));
+    }
+
+    const overdueVisible = sortTasks(overdue)
+      .filter((task) => !searchQuery || `${task.client} ${task.task}`.toLocaleLowerCase('ko-KR').includes(searchQuery));
+    overdueList.replaceChildren();
+    if (!overdueVisible.length) {
+      const message = searchQuery
+        ? ['검색된 기한 지난 업무가 없어요', '다른 거래처명이나 업무 내용으로 검색해 보세요.']
+        : ['기한 지난 업무가 없어요', '마감시간을 넘긴 미처리 업무가 이곳에 표시됩니다.'];
+      overdueList.innerHTML = `<div class="empty-state compact"><div><span class="empty-icon">✓</span><strong>${message[0]}</strong><p>${message[1]}</p></div></div>`;
+    } else {
+      overdueVisible.forEach(task => renderTask(task, overdueList, true));
     }
 
     const completedVisible = [...completed]
@@ -304,8 +328,10 @@
   function renderLoading() {
     const loadingMarkup = '<div class="empty-state loading-state"><div><span class="loading-dot" aria-hidden="true"></span><strong>서버 업무를 불러오는 중입니다</strong><p>PC와 휴대폰의 최신 내용을 확인하고 있어요.</p></div></div>';
     list.innerHTML = loadingMarkup;
+    overdueList.innerHTML = loadingMarkup;
     completedList.innerHTML = loadingMarkup;
     list.setAttribute('aria-busy', 'true');
+    overdueList.setAttribute('aria-busy', 'true');
     completedList.setAttribute('aria-busy', 'true');
     setAppLoading(true);
   }
@@ -314,6 +340,7 @@
     form.querySelectorAll('input, button').forEach((control) => { control.disabled = loading; });
     importButton.disabled = loading;
     list.toggleAttribute('aria-busy', loading);
+    overdueList.toggleAttribute('aria-busy', loading);
     completedList.toggleAttribute('aria-busy', loading);
   }
 
