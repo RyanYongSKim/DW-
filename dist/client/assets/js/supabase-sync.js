@@ -8,21 +8,18 @@
         auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
       })
     : null;
-  const appShell = document.querySelector('#app-shell');
   const accountDialog = document.querySelector('#account-dialog');
   const accountForm = document.querySelector('#account-form');
   const emailInput = document.querySelector('#account-email');
   const accountStatus = document.querySelector('#account-status');
   const accountSubmit = document.querySelector('#account-submit');
-  const linkModeButton = document.querySelector('#account-mode-link');
-  const signInModeButton = document.querySelector('#account-mode-signin');
-  const accountHelp = document.querySelector('#account-help');
   const accountLabel = document.querySelector('#account-label');
+  const syncStatus = document.querySelector('#sync-status');
   const connectButton = document.querySelector('#connect-device');
   const logoutButton = document.querySelector('#logout-button');
-  let accountMode = 'link';
   let currentTaskCount = 0;
   let currentUser = null;
+  let taskChannel = null;
   let resolveAuthReady;
   const authReady = new Promise((resolve) => { resolveAuthReady = resolve; });
 
@@ -35,15 +32,16 @@
     return error instanceof TypeError || /fetch|network|offline|connection|failed to fetch/.test(text);
   }
 
+  function isExistingEmailError(error) {
+    return /already registered|already been registered|already exists|email.*taken/i.test(String(error?.message || ''));
+  }
+
   function safeAuthError(error) {
-    if (isNetworkError(error)) {
-      return '인터넷 연결을 확인한 뒤 다시 시도해 주세요.';
+    if (isNetworkError(error)) return '인터넷 연결을 확인한 뒤 다시 시도해 주세요.';
+    if (/rate limit|too many/i.test(String(error?.message || ''))) {
+      return '인증 메일을 너무 자주 요청했어요. 잠시 후 다시 시도해 주세요.';
     }
-    const message = String(error?.message || '').toLowerCase();
-    if (/rate limit|too many/.test(message)) return '인증 메일을 너무 자주 요청했어요. 잠시 후 다시 시도해 주세요.';
-    if (/already registered|already been registered/.test(message)) return '이미 연결된 이메일입니다. ‘업무 불러오기’를 선택해 주세요.';
-    if (/signups not allowed|user not found/.test(message)) return '먼저 업무가 있는 PC에서 이 이메일을 연결해 주세요.';
-    return '인증 메일을 보내지 못했습니다. 이메일을 확인하고 다시 시도해 주세요.';
+    return '연결 메일을 보내지 못했습니다. 이메일을 확인하고 다시 시도해 주세요.';
   }
 
   function setStatus(message = '', state = '') {
@@ -52,35 +50,35 @@
     accountStatus.dataset.state = state;
   }
 
-  function updateAuthView(user, { announce = true } = {}) {
-    currentUser = user || null;
-    if (appShell) appShell.hidden = false;
-
-    const connected = Boolean(currentUser && !isAnonymous(currentUser));
-    if (accountLabel) accountLabel.textContent = connected ? currentUser.email : '브라우저 전용';
-    if (connectButton) {
-      connectButton.hidden = connected;
-      connectButton.textContent = currentTaskCount ? '기기 연결' : '이메일로 불러오기';
-    }
-    if (logoutButton) logoutButton.hidden = !connected;
-
-    if (announce) {
-      window.dispatchEvent(new CustomEvent('taskcloud:authchange', { detail: currentUser }));
-    }
+  function setSyncState(state, message) {
+    if (!syncStatus) return;
+    const labels = {
+      loading: '서버 확인 중',
+      syncing: '동기화 중',
+      synced: '자동 동기화됨',
+      offline: '오프라인 저장'
+    };
+    syncStatus.dataset.state = state;
+    syncStatus.textContent = message || labels[state] || state;
   }
 
-  function setMode(mode) {
-    accountMode = mode === 'signin' ? 'signin' : 'link';
-    const signingIn = accountMode === 'signin';
-    linkModeButton?.setAttribute('aria-pressed', String(!signingIn));
-    signInModeButton?.setAttribute('aria-pressed', String(signingIn));
-    if (accountHelp) {
-      accountHelp.textContent = signingIn
-        ? '다른 기기에서 연결한 이메일로 저장된 업무를 불러옵니다.'
-        : '이 브라우저의 현재 업무를 이메일에 연결합니다. 업무가 있는 PC에서 먼저 진행하세요.';
+  function updateAuthView(user, { announce = true } = {}) {
+    const previousUserId = currentUser?.id || null;
+    currentUser = user || null;
+    const connected = Boolean(currentUser && !isAnonymous(currentUser));
+    if (accountLabel) accountLabel.textContent = connected ? currentUser.email : '연결 전';
+    if (connectButton) {
+      connectButton.hidden = connected;
+      connectButton.textContent = 'PC·휴대폰 연결';
     }
-    if (accountSubmit) accountSubmit.textContent = signingIn ? '업무 불러오기 메일 보내기' : '현재 업무 연결 메일 보내기';
-    setStatus();
+    if (logoutButton) logoutButton.hidden = !connected;
+    if (connected) setSyncState('syncing', '서버 연결 중');
+
+    if (announce) {
+      window.dispatchEvent(new CustomEvent('taskcloud:authchange', {
+        detail: { user: currentUser, previousUserId }
+      }));
+    }
   }
 
   async function ensureUser() {
@@ -113,7 +111,7 @@
       created_at: task.createdAt ? new Date(task.createdAt).toISOString() : new Date().toISOString(),
       completed_at: task.completedAt ? new Date(task.completedAt).toISOString() : null,
       cancelled_at: task.cancelledAt ? new Date(task.cancelledAt).toISOString() : null,
-      updated_at: new Date().toISOString()
+      updated_at: task.updatedAt ? new Date(task.updatedAt).toISOString() : new Date().toISOString()
     };
   }
 
@@ -126,19 +124,18 @@
       deadline: row.deadline,
       createdAt: row.created_at,
       completedAt: row.completed_at,
-      cancelledAt: row.cancelled_at
+      cancelledAt: row.cancelled_at,
+      updatedAt: row.updated_at
     };
   }
 
   connectButton?.addEventListener('click', () => {
-    const defaultMode = currentTaskCount > 0 && isAnonymous(currentUser) ? 'link' : 'signin';
-    setMode(defaultMode);
+    setStatus();
+    emailInput?.removeAttribute('aria-invalid');
     if (accountDialog?.showModal) accountDialog.showModal();
     else accountDialog?.setAttribute('open', '');
     window.setTimeout(() => emailInput?.focus(), 0);
   });
-  linkModeButton?.addEventListener('click', () => setMode('link'));
-  signInModeButton?.addEventListener('click', () => setMode('signin'));
   accountDialog?.addEventListener('close', () => setStatus());
 
   accountForm?.addEventListener('submit', async (event) => {
@@ -157,27 +154,30 @@
     }
 
     accountSubmit.disabled = true;
-    setStatus('인증 메일을 보내고 있어요…');
+    setStatus('이 기기에 맞는 연결 방법을 확인하고 있어요…');
     try {
-      if (accountMode === 'link') {
-        const user = await requireUser();
-        if (!isAnonymous(user)) throw new Error('already registered');
+      const user = await requireUser();
+      if (isAnonymous(user)) {
         const { error } = await client.auth.updateUser({ email });
-        if (error) throw error;
-        setStatus('메일의 링크를 누르면 현재 업무가 이메일에 연결됩니다.', 'success');
-      } else {
-        const { error } = await client.auth.signInWithOtp({
-          email,
-          options: {
-            shouldCreateUser: false,
-            emailRedirectTo: config.authRedirectUrl || window.location.origin
-          }
-        });
-        if (error) throw error;
-        setStatus('메일의 링크를 누르면 이 기기에서 같은 업무가 열립니다.', 'success');
+        if (!error) {
+          setStatus('메일의 링크를 한 번만 누르면 현재 업무가 연결되고 이후 자동 동기화됩니다.', 'success');
+          return;
+        }
+        if (!isExistingEmailError(error)) throw error;
+        if (currentTaskCount > 0) window.dispatchEvent(new CustomEvent('taskcloud:preparemerge'));
       }
+
+      const { error } = await client.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: false,
+          emailRedirectTo: config.authRedirectUrl || window.location.origin
+        }
+      });
+      if (error) throw error;
+      setStatus('메일의 링크를 이 기기에서 한 번만 누르세요. 다음부터는 자동 연결됩니다.', 'success');
     } catch (error) {
-      console.warn('Supabase 이메일 인증에 실패했습니다.', error);
+      console.warn('Supabase 이메일 연결에 실패했습니다.', error);
       setStatus(safeAuthError(error), 'error');
     } finally {
       accountSubmit.disabled = false;
@@ -212,10 +212,12 @@
       .catch((error) => {
         console.warn('Supabase 세션을 준비하지 못했습니다.', error);
         updateAuthView(null);
+        setSyncState('offline');
         resolveAuthReady(null);
       });
   } else {
     updateAuthView(null, { announce: false });
+    setSyncState('offline');
     resolveAuthReady(null);
   }
 
@@ -225,11 +227,15 @@
     get user() { return currentUser; },
     setTaskCount(count) {
       currentTaskCount = Number.isFinite(Number(count)) ? Number(count) : 0;
-      updateAuthView(currentUser, { announce: false });
     },
+    setSyncState,
     async load() {
       const user = await requireUser();
-      const { data, error } = await client.from('tasks').select('*').eq('user_id', user.id);
+      const { data, error } = await client
+        .from('tasks')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: true });
       if (error) throw error;
       return data.map(fromRow);
     },
@@ -248,6 +254,20 @@
         const { error: deleteError } = await client.from('tasks').delete().eq('user_id', user.id).in('id', staleIds);
         if (deleteError) throw deleteError;
       }
+    },
+    async subscribe(onChange) {
+      const user = await requireUser();
+      if (taskChannel) await client.removeChannel(taskChannel);
+      taskChannel = client
+        .channel(`tasks-${user.id}`)
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'tasks',
+          filter: `user_id=eq.${user.id}`
+        }, onChange)
+        .subscribe();
+      return taskChannel;
     }
   };
 })();

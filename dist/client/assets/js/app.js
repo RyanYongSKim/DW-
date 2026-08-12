@@ -3,6 +3,9 @@
 
   const STORAGE_KEY = 'deadline-line-tasks-v1';
   const STORAGE_MIGRATION_KEY = `${STORAGE_KEY}:account-migration`;
+  const PENDING_MERGE_KEY = `${STORAGE_KEY}:pending-account-merge`;
+  const SERVER_SEEN_SUFFIX = ':server-seen';
+  const PENDING_SYNC_SUFFIX = ':pending-sync';
   const URGENT_MS = 30 * 60 * 1000;
   const form = document.querySelector('#task-form');
   const list = document.querySelector('#task-list');
@@ -16,12 +19,24 @@
   let cloudReady = false;
   let cloudHydrationPromise = Promise.resolve();
   let cloudSaveQueue = Promise.resolve();
+  let autoSyncStarted = false;
+  let remoteRefreshTimer = null;
 
   const exportButton = document.querySelector('#export-data');
   const importButton = document.querySelector('#import-data');
   const importFileInput = document.querySelector('#import-data-file');
   const deadlineInput = document.querySelector('#deadline');
   const deadlinePickerButton = document.querySelector('#open-deadline-picker');
+
+  window.addEventListener('taskcloud:preparemerge', () => {
+    const clean = tasks.map(({ _lastStatus, ...task }) => task);
+    localStorage.setItem(PENDING_MERGE_KEY, JSON.stringify(clean));
+  });
+  window.addEventListener('taskcloud:authchange', (event) => {
+    const user = event.detail?.user;
+    if (!cloudReady || !user || accountStorageKey?.endsWith(user.id)) return;
+    cloudHydrationPromise = hydrateFromCloud();
+  });
 
   exportButton.addEventListener('click', exportTasks);
   importButton.addEventListener('click', () => importFileInput.click());
@@ -68,7 +83,7 @@
     tiltAngle: -12,
     duration: 18000
   });
-  render();
+  renderLoading();
   cloudHydrationPromise = hydrateFromCloud();
 
   form.addEventListener('submit', (event) => {
@@ -91,6 +106,7 @@
         id: createTaskId(),
         ...values,
         createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
         completedAt: null,
         cancelledAt: null
       });
@@ -151,6 +167,7 @@
     } else {
       task.completedAt = new Date().toISOString();
     }
+    task.updatedAt = new Date().toISOString();
     saveTasks();
     render();
   }));
@@ -282,6 +299,22 @@
     } else {
       completedVisible.forEach(task => renderTask(task, completedList, false));
     }
+  }
+
+  function renderLoading() {
+    const loadingMarkup = '<div class="empty-state loading-state"><div><span class="loading-dot" aria-hidden="true"></span><strong>서버 업무를 불러오는 중입니다</strong><p>PC와 휴대폰의 최신 내용을 확인하고 있어요.</p></div></div>';
+    list.innerHTML = loadingMarkup;
+    completedList.innerHTML = loadingMarkup;
+    list.setAttribute('aria-busy', 'true');
+    completedList.setAttribute('aria-busy', 'true');
+    setAppLoading(true);
+  }
+
+  function setAppLoading(loading) {
+    form.querySelectorAll('input, button').forEach((control) => { control.disabled = loading; });
+    importButton.disabled = loading;
+    list.toggleAttribute('aria-busy', loading);
+    completedList.toggleAttribute('aria-busy', loading);
   }
 
   function renderTask(task, target = list, useStack = true) {
@@ -437,23 +470,40 @@
     }
     if (!cloudReady && !forceCloud) return Promise.resolve(false);
 
+    localStorage.setItem(`${storageKey}${PENDING_SYNC_SUFFIX}`, '1');
+    window.taskCloud.setSyncState('syncing');
     const request = cloudSaveQueue
       .catch(() => undefined)
       .then(() => window.taskCloud.replaceAll(clean));
     cloudSaveQueue = request;
 
-    if (reportError) return request.then(() => true);
-    return request.then(() => true).catch((error) => {
+    if (reportError) return request.then(() => {
+      localStorage.removeItem(`${storageKey}${PENDING_SYNC_SUFFIX}`);
+      window.taskCloud.setSyncState('synced');
+      return true;
+    }).catch((error) => {
+      window.taskCloud.setSyncState('offline');
+      throw error;
+    });
+    return request.then(() => {
+      localStorage.removeItem(`${storageKey}${PENDING_SYNC_SUFFIX}`);
+      window.taskCloud.setSyncState('synced');
+      return true;
+    }).catch((error) => {
+      window.taskCloud.setSyncState('offline');
       console.warn('Supabase 동기화에 실패해 브라우저에 저장했습니다.', error);
       return false;
     });
   }
 
   async function hydrateFromCloud() {
+    renderLoading();
+    window.taskCloud?.setSyncState('loading');
     if (!window.taskCloud?.enabled) {
       accountStorageKey = STORAGE_KEY;
       tasks = loadTasks(accountStorageKey);
       render();
+      setAppLoading(false);
       cloudReady = true;
       return;
     }
@@ -468,21 +518,102 @@
       }
       accountStorageKey = `${STORAGE_KEY}:${user.id}`;
       migrateLegacyTasksOnce(user.id);
-      tasks = loadTasks(accountStorageKey);
-      render();
+      const cachedTasks = loadTasks(accountStorageKey);
+      const pendingSyncKey = `${accountStorageKey}${PENDING_SYNC_SUFFIX}`;
+      if (localStorage.getItem(pendingSyncKey) === '1') {
+        await window.taskCloud.replaceAll(cachedTasks);
+        localStorage.removeItem(pendingSyncKey);
+      }
       const remoteTasks = await window.taskCloud.load();
-      if (remoteTasks?.length) {
-        tasks = remoteTasks;
-        localStorage.setItem(accountStorageKey, JSON.stringify(tasks));
-        render();
-      } else if (tasks.length) {
+      tasks = mergePendingTasks(remoteTasks || []);
+      const serverSeenKey = `${accountStorageKey}${SERVER_SEEN_SUFFIX}`;
+      const hasSeenServer = localStorage.getItem(serverSeenKey) === '1';
+      if (!tasks.length && cachedTasks.length && !hasSeenServer) {
+        tasks = cachedTasks;
+        await window.taskCloud.replaceAll(tasks);
+      } else if (tasks.length !== (remoteTasks || []).length) {
         await window.taskCloud.replaceAll(tasks);
       }
+      localStorage.setItem(serverSeenKey, '1');
+      localStorage.setItem(accountStorageKey, JSON.stringify(tasks));
+      render();
+      window.taskCloud.setSyncState('synced');
+      startAutoSync();
     } catch (error) {
+      tasks = loadTasks(accountStorageKey || STORAGE_KEY);
+      render();
+      window.taskCloud?.setSyncState('offline');
       console.warn('Supabase 업무를 불러오지 못해 브라우저 데이터를 사용합니다.', error);
     } finally {
       cloudReady = true;
+      setAppLoading(false);
     }
+  }
+
+  function mergePendingTasks(remoteTasks) {
+    let pendingTasks = [];
+    try {
+      const parsed = JSON.parse(localStorage.getItem(PENDING_MERGE_KEY) || '[]');
+      if (Array.isArray(parsed)) pendingTasks = parsed;
+    } catch {
+      pendingTasks = [];
+    }
+    if (!pendingTasks.length) return remoteTasks;
+    const signatures = new Set(remoteTasks.map(taskSignature));
+    const merged = [...remoteTasks];
+    pendingTasks.forEach((task) => {
+      const signature = taskSignature(task);
+      if (signatures.has(signature)) return;
+      signatures.add(signature);
+      merged.push({ ...task, id: createTaskId(), updatedAt: new Date().toISOString() });
+    });
+    localStorage.removeItem(PENDING_MERGE_KEY);
+    return merged;
+  }
+
+  function taskSignature(task) {
+    return [normalizeClient(task.client), String(task.task || '').trim(), String(task.deadline || ''), Number(task.order)].join('|');
+  }
+
+  async function refreshFromCloud() {
+    if (!cloudReady || !window.taskCloud?.enabled || !window.taskCloud.user || document.hidden) return;
+    try {
+      await cloudSaveQueue.catch(() => undefined);
+      window.taskCloud.setSyncState('syncing');
+      const pendingSyncKey = `${accountStorageKey}${PENDING_SYNC_SUFFIX}`;
+      if (localStorage.getItem(pendingSyncKey) === '1') {
+        await window.taskCloud.replaceAll(tasks.map(({ _lastStatus, ...task }) => task));
+        localStorage.removeItem(pendingSyncKey);
+      }
+      const remoteTasks = await window.taskCloud.load();
+      tasks = remoteTasks;
+      localStorage.setItem(accountStorageKey, JSON.stringify(tasks));
+      localStorage.setItem(`${accountStorageKey}${SERVER_SEEN_SUFFIX}`, '1');
+      render();
+      window.taskCloud.setSyncState('synced');
+    } catch (error) {
+      window.taskCloud.setSyncState('offline');
+      console.warn('최신 서버 업무를 확인하지 못했습니다.', error);
+    }
+  }
+
+  function queueRemoteRefresh() {
+    window.clearTimeout(remoteRefreshTimer);
+    remoteRefreshTimer = window.setTimeout(refreshFromCloud, 250);
+  }
+
+  function startAutoSync() {
+    if (autoSyncStarted) return;
+    autoSyncStarted = true;
+    window.taskCloud.subscribe(queueRemoteRefresh).catch((error) => {
+      console.warn('실시간 업무 구독을 시작하지 못했습니다.', error);
+    });
+    window.setInterval(refreshFromCloud, 20000);
+    window.addEventListener('focus', refreshFromCloud);
+    window.addEventListener('online', refreshFromCloud);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) refreshFromCloud();
+    });
   }
 
   function migrateLegacyTasksOnce(userId) {
@@ -501,7 +632,7 @@
     const link = document.createElement('a');
     const date = new Date().toISOString().slice(0, 10);
     link.href = url;
-    link.download = `마감선-업무-${date}.json`;
+    link.download = `YS-DW-업무-${date}.json`;
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -520,7 +651,7 @@
       const valid = imported.every((task) => task && typeof task.client === 'string' && typeof task.task === 'string' && task.deadline);
       if (!valid) throw new Error('invalid');
     } catch {
-      window.alert('올바른 마감선 업무 JSON 파일을 선택해 주세요.');
+      window.alert('올바른 YS-DW 업무 JSON 파일을 선택해 주세요.');
       return;
     }
 
@@ -535,7 +666,8 @@
       tasks = imported.map((task, index) => ({
         ...task,
         id: createTaskId(),
-        order: Number.isInteger(Number(task.order)) && Number(task.order) > 0 ? Number(task.order) : index + 1
+        order: Number.isInteger(Number(task.order)) && Number(task.order) > 0 ? Number(task.order) : index + 1,
+        updatedAt: new Date().toISOString()
       }));
       resetForm();
       render();
