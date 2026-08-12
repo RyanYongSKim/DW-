@@ -11,6 +11,7 @@
   let tasks = loadTasks();
   let activeFilter = 'open';
   let searchQuery = '';
+  let cloudReady = false;
 
   const exportButton = document.querySelector('#export-data');
   const importButton = document.querySelector('#import-data');
@@ -52,6 +53,7 @@
     duration: 18000
   });
   render();
+  hydrateFromCloud();
 
   form.addEventListener('submit', (event) => {
     event.preventDefault();
@@ -406,6 +408,28 @@
   function saveTasks() {
     const clean = tasks.map(({ _lastStatus, ...task }) => task);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(clean));
+    if (!cloudReady) return;
+    window.taskCloud?.replaceAll(clean).catch((error) => {
+      console.warn('Supabase 동기화에 실패해 브라우저에 저장했습니다.', error);
+    });
+  }
+
+  async function hydrateFromCloud() {
+    if (!window.taskCloud?.enabled) return;
+    try {
+      const remoteTasks = await window.taskCloud.load();
+      if (remoteTasks?.length) {
+        tasks = remoteTasks;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+        render();
+      } else if (tasks.length) {
+        await window.taskCloud.replaceAll(tasks);
+      }
+    } catch (error) {
+      console.warn('Supabase 업무를 불러오지 못해 브라우저 데이터를 사용합니다.', error);
+    } finally {
+      cloudReady = true;
+    }
   }
 
   function exportTasks() {

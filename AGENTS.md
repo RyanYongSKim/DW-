@@ -1,4 +1,6 @@
 # AGENTS.md
+- Supabase 규칙: 순수 HTML·CSS·JavaScript 구조는 유지하고 데이터 동기화에 버전이 고정된 Supabase 브라우저 SDK를 사용할 수 있다.
+- 데이터 보안: 브라우저에는 Supabase publishable key만 두고 비밀 키를 넣지 않으며, 업무 테이블은 사용자 소유권 기반 RLS를 유지한다.
 - 만드는 것: 여러 거래처의 업무를 기록하고 마감시간이 가까운 순서대로 처리하도록 돕는 도구다.
 - 기술 규칙: 순수 HTML, CSS, JavaScript만 사용하고 설치·빌드·프레임워크를 추가하지 않는다.
 - 먼저 읽을 자료: 작업 전에 `docs/prd.md`, `docs/design.md`, `docs/memory.md`를 읽는다.

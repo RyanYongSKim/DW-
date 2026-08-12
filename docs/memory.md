@@ -201,3 +201,26 @@
 - `assets/css/styles.css`
 - `assets/js/app.js`
 - `docs/memory.md`
+# 2026-08-12 16:02:00 KST
+
+## Supabase 업무 영구 저장 환경 구축
+
+- 기존 Supabase 프로젝트에 `tasks` 테이블을 만들고 진행, 완료, 취소 업무를 한 테이블에 기록하도록 구성했다.
+- 익명 사용자 인증을 활성화하고 `user_id` 소유권을 검사하는 조회·등록·수정·삭제 RLS 정책을 적용했다.
+- 브라우저에는 공개 가능한 publishable key만 연결하고 비밀 키는 포함하지 않았다.
+- 서버 데이터가 있으면 우선 불러오고, 서버가 비어 있으면 기존 `localStorage` 업무를 최초 1회 자동 이전하도록 연결했다.
+- 서버 연결 실패 시 브라우저 저장을 계속 사용하는 안전장치를 유지했다.
+- Supabase 공식 CLI로 로컬 설정과 마이그레이션 파일을 생성했다.
+- 실제 익명 로그인, 업무 등록·조회·삭제 테스트와 사용자 간 데이터 격리 테스트를 수행했다.
+
+### 영향 파일
+
+- `index.html`
+- `assets/js/app.js`
+- `assets/js/supabase-config.js`
+- `assets/js/supabase-sync.js`
+- `supabase/config.toml`
+- `supabase/migrations/20260812070412_create_tasks.sql`
+- `docs/prd.md`
+- `docs/memory.md`
+- `AGENTS.md`
