@@ -74,7 +74,7 @@
       if (task) Object.assign(task, values, { updatedAt: new Date().toISOString() });
     } else {
       tasks.push({
-        id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
+        id: createTaskId(),
         ...values,
         createdAt: new Date().toISOString(),
         completedAt: null,
@@ -486,6 +486,7 @@
       await cloudHydrationPromise;
       tasks = imported.map((task, index) => ({
         ...task,
+        id: createTaskId(),
         order: Number.isInteger(Number(task.order)) && Number(task.order) > 0 ? Number(task.order) : index + 1
       }));
       resetForm();
@@ -494,10 +495,14 @@
       window.alert(`업무 ${tasks.length}건을 가져와 서버에 저장했습니다.`);
     } catch (error) {
       console.warn('가져온 업무를 Supabase에 저장하지 못했습니다.', error);
-      window.alert('업무는 이 브라우저에 저장했지만 서버 저장에 실패했습니다. 인터넷 연결을 확인하고 다시 가져와 주세요.');
+      window.alert('업무는 이 브라우저에 저장했지만 서버 저장에 실패했습니다. 잠시 후 새로고침하고 다시 가져와 주세요.');
     } finally {
       importButton.disabled = false;
       importButton.textContent = originalLabel;
     }
+  }
+
+  function createTaskId() {
+    return crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
   }
 })();
