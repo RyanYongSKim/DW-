@@ -72,6 +72,7 @@
 - `docs/prd.md`
 - `docs/design.md`
 - `docs/memory.md`
+
 - `AGENTS.md`
 
 ## 2026-08-12 10:33:27 KST
@@ -361,5 +362,21 @@
 - `dist/client/assets/css/styles.css`
 - `dist/client/assets/js/app.js`
 - `docs/prd.md`
+- `docs/design.md`
+- `docs/memory.md`
+
+## 2026-08-13 08:55:12 KST
+
+### 전체 글자체를 맑은 고딕으로 통일
+
+- 본문과 버튼뿐 아니라 큰 제목, 섹션 제목, 업무명, 상태 숫자와 빈 화면 안내까지 전체 글자체를 `맑은 고딕`으로 변경했다.
+- 기존 설치 앱에서도 새 글자체가 갱신되도록 서비스 워커 캐시 버전을 변경했다.
+
+### 영향 파일
+
+- `assets/css/styles.css`
+- `dist/client/assets/css/styles.css`
+- `service-worker.js`
+- `dist/client/service-worker.js`
 - `docs/design.md`
 - `docs/memory.md`
