@@ -111,6 +111,8 @@
       created_at: task.createdAt ? new Date(task.createdAt).toISOString() : new Date().toISOString(),
       completed_at: task.completedAt ? new Date(task.completedAt).toISOString() : null,
       cancelled_at: task.cancelledAt ? new Date(task.cancelledAt).toISOString() : null,
+      work_started_at: task.workStartedAt ? new Date(task.workStartedAt).toISOString() : null,
+      progress_note: String(task.progressNote || ''),
       updated_at: task.updatedAt ? new Date(task.updatedAt).toISOString() : new Date().toISOString()
     };
   }
@@ -125,6 +127,8 @@
       createdAt: row.created_at,
       completedAt: row.completed_at,
       cancelledAt: row.cancelled_at,
+      workStartedAt: row.work_started_at,
+      progressNote: row.progress_note || '',
       updatedAt: row.updated_at
     };
   }

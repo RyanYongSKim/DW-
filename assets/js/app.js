@@ -22,6 +22,7 @@
   let cloudSaveQueue = Promise.resolve();
   let autoSyncStarted = false;
   let remoteRefreshTimer = null;
+  let progressEditingId = null;
 
   const exportButton = document.querySelector('#export-data');
   const importButton = document.querySelector('#import-data');
@@ -117,7 +118,9 @@
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         completedAt: null,
-        cancelledAt: null
+        cancelledAt: null,
+        workStartedAt: null,
+        progressNote: ''
       });
     }
     saveTasks();
@@ -148,12 +151,16 @@
   }));
 
   [list, overdueList, completedList].forEach(container => container.addEventListener('click', (event) => {
-    const button = event.target.closest('.complete-button, .edit-button, .cancel-button, .delete-button, .follow-up-button');
+    const button = event.target.closest('.complete-button, .edit-button, .cancel-button, .delete-button, .follow-up-button, .progress-button');
     if (!button) return;
     const task = tasks.find((item) => item.id === button.dataset.id);
     if (!task) return;
     if (button.classList.contains('follow-up-button')) {
       startFollowUp(task);
+      return;
+    }
+    if (button.classList.contains('progress-button')) {
+      openProgressDialog(task);
       return;
     }
     if (button.classList.contains('delete-button')) {
@@ -180,6 +187,36 @@
     saveTasks();
     render();
   }));
+
+  const progressDialog = document.querySelector('#progress-dialog');
+  const progressForm = document.querySelector('#progress-form');
+  const progressNoteInput = document.querySelector('#progress-note');
+  const progressClearButton = document.querySelector('#progress-clear');
+
+  progressForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const task = tasks.find((item) => item.id === progressEditingId);
+    if (!task) return closeProgressDialog();
+    task.workStartedAt = task.workStartedAt || new Date().toISOString();
+    task.progressNote = progressNoteInput.value.trim();
+    task.updatedAt = new Date().toISOString();
+    saveTasks();
+    render();
+    closeProgressDialog();
+  });
+
+  progressClearButton.addEventListener('click', () => {
+    const task = tasks.find((item) => item.id === progressEditingId);
+    if (!task) return closeProgressDialog();
+    task.workStartedAt = null;
+    task.progressNote = '';
+    task.updatedAt = new Date().toISOString();
+    saveTasks();
+    render();
+    closeProgressDialog();
+  });
+
+  progressDialog.addEventListener('close', () => { progressEditingId = null; });
 
   window.setInterval(render, 30000);
 
@@ -284,7 +321,7 @@
       if (activeFilter === 'open') return !task.completedAt && !task.cancelledAt && getStatus(task) !== 'overdue';
       if (activeFilter === 'cancelled') return Boolean(task.cancelledAt);
       return !task.completedAt && getStatus(task) !== 'overdue';
-    }).filter((task) => !searchQuery || `${task.client} ${task.task}`.toLocaleLowerCase('ko-KR').includes(searchQuery));
+    }).filter((task) => !searchQuery || `${task.client} ${task.task} ${task.progressNote || ''}`.toLocaleLowerCase('ko-KR').includes(searchQuery));
     list.replaceChildren();
     if (!visible.length) {
       const message = searchQuery
@@ -300,7 +337,7 @@
     }
 
     const overdueVisible = sortTasks(overdue)
-      .filter((task) => !searchQuery || `${task.client} ${task.task}`.toLocaleLowerCase('ko-KR').includes(searchQuery));
+      .filter((task) => !searchQuery || `${task.client} ${task.task} ${task.progressNote || ''}`.toLocaleLowerCase('ko-KR').includes(searchQuery));
     overdueList.replaceChildren();
     if (!overdueVisible.length) {
       const message = searchQuery
@@ -358,12 +395,19 @@
     node.querySelector('.client-name').textContent = task.client;
     node.querySelector('.status-badge').textContent = labels[status];
     node.querySelector('.task-title').textContent = task.task;
+    const workProgress = node.querySelector('.work-progress');
+    if (task.workStartedAt && status !== 'done' && status !== 'cancelled') {
+      workProgress.hidden = false;
+      node.classList.add('work-started');
+      node.querySelector('.work-progress-note').textContent = task.progressNote || '준비를 시작했어요.';
+    }
     node.querySelector('.deadline-text').textContent = formatDeadline(task.deadline, status);
     const completeButton = node.querySelector('.complete-button');
     const taskActions = node.querySelector('.task-actions');
     if (status === 'done' || status === 'cancelled') {
       taskActions.classList.add('terminal-actions');
       taskActions.querySelector('.edit-button').remove();
+      taskActions.querySelector('.progress-button').remove();
       taskActions.querySelector('.cancel-button').remove();
       taskActions.querySelector('.complete-button').remove();
       if (status === 'cancelled') taskActions.querySelector('.follow-up-button').remove();
@@ -387,6 +431,9 @@
       completeButton.setAttribute('aria-label', `${task.task} 처리 완료`);
       node.querySelector('.edit-button').setAttribute('aria-label', `${task.task} 수정`);
       node.querySelector('.cancel-button').setAttribute('aria-label', `${task.task} 취소`);
+      const progressButton = node.querySelector('.progress-button');
+      progressButton.textContent = task.workStartedAt ? '준비 내용 수정' : '준비 중 기록';
+      progressButton.setAttribute('aria-label', `${task.task} 준비 내용 ${task.workStartedAt ? '수정' : '기록'}`);
     }
     target.append(node);
   }
@@ -442,6 +489,21 @@
     document.querySelector('#client').focus({ preventScroll: true });
   }
 
+  function openProgressDialog(task) {
+    progressEditingId = task.id;
+    progressNoteInput.value = task.progressNote || '';
+    progressClearButton.hidden = !task.workStartedAt;
+    if (progressDialog.showModal) progressDialog.showModal();
+    else progressDialog.setAttribute('open', '');
+    window.setTimeout(() => progressNoteInput.focus(), 0);
+  }
+
+  function closeProgressDialog() {
+    progressEditingId = null;
+    if (progressDialog.close) progressDialog.close();
+    else progressDialog.removeAttribute('open');
+  }
+
   function startFollowUp(task) {
     resetForm();
     document.querySelector('#client').value = task.client;
@@ -475,7 +537,9 @@
       return Array.isArray(parsed)
         ? parsed.map((task, index) => ({
             ...task,
-            order: Number.isInteger(Number(task.order)) && Number(task.order) > 0 ? Number(task.order) : index + 1
+            order: Number.isInteger(Number(task.order)) && Number(task.order) > 0 ? Number(task.order) : index + 1,
+            workStartedAt: task.workStartedAt || null,
+            progressNote: String(task.progressNote || '')
           }))
         : [];
     } catch {

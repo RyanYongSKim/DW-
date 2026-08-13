@@ -223,6 +223,7 @@
 - `supabase/migrations/20260812070412_create_tasks.sql`
 - `docs/prd.md`
 - `docs/memory.md`
+
 - `AGENTS.md`
 # 2026-08-12 16:17:06 KST
 
@@ -405,4 +406,45 @@
 ### 영향 파일
 
 - `docs/prd.md`
+- `docs/memory.md`
+
+## 2026-08-13 19:31:18 KST
+
+### PC와 휴대폰의 네이버 계정 업무 통합 완료
+
+- PC의 익명 사용자 업무를 `ysk5480@naver.com` 계정에 연결해 휴대폰과 동일한 서버 업무를 사용하도록 통합했다.
+- 이전에 만료된 인증 링크는 사용하지 않고 새 인증 메일의 일회용 링크를 현재 업무 페이지에서 직접 열어 인증했다.
+- PC에 있던 업무와 네이버 계정의 업무가 합쳐져 남은 업무가 7개에서 8개로 변경되었고, 처리 완료 업무 2개도 유지되었다.
+- 새로고침 후 계정 이메일, `자동 동기화됨` 상태, 남은 업무 8개와 전체 업무 카드 10개가 유지되며 중복 업무가 없는 것을 확인했다.
+
+### 영향 파일
+
+- `docs/memory.md`
+
+## 2026-08-13 22:52:04 KST
+
+### 완료 전 `준비 중` 진행 기록 추가
+
+- 미완료 업무 카드에 `준비 중 기록` 버튼을 추가해 업무를 완전히 처리하기 전의 진행 상황을 남길 수 있게 했다.
+- `3가지 중 1가지 완료`처럼 200자 이내의 준비 내용을 저장하고 카드에 노란색 `준비 중` 문구와 함께 계속 표시한다.
+- 저장된 준비 내용은 `준비 내용 수정`에서 바꾸거나 `표시 해제`할 수 있으며, 마감 상태와 기존 정렬 순서는 변경하지 않는다.
+- 준비 기록을 Supabase의 `work_started_at`, `progress_note` 항목에 저장해 PC와 휴대폰에서 동일하게 동기화하도록 했다.
+- 새로고침 뒤 준비 문구가 유지되는 것과 360px 휴대폰 폭에서 글자와 버튼이 화면 밖으로 나가지 않는 것을 확인했다.
+- 기능 확인용 임시 업무와 임시 서버 자료는 검증 후 제거했다.
+
+### 영향 파일
+
+- `index.html`
+- `assets/css/styles.css`
+- `assets/js/app.js`
+- `assets/js/supabase-sync.js`
+- `service-worker.js`
+- `dist/client/index.html`
+- `dist/client/assets/css/styles.css`
+- `dist/client/assets/js/app.js`
+- `dist/client/assets/js/supabase-sync.js`
+- `dist/client/service-worker.js`
+- `supabase/migrations/20260813134010_add_task_progress.sql`
+- `docs/prd.md`
+- `docs/design.md`
 - `docs/memory.md`
