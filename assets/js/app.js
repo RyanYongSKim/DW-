@@ -23,6 +23,7 @@
   let autoSyncStarted = false;
   let remoteRefreshTimer = null;
   let progressEditingId = null;
+  let completionEditingId = null;
 
   const exportButton = document.querySelector('#export-data');
   const importButton = document.querySelector('#import-data');
@@ -120,7 +121,8 @@
         completedAt: null,
         cancelledAt: null,
         workStartedAt: null,
-        progressNote: ''
+        progressNote: '',
+        completionNote: ''
       });
     }
     saveTasks();
@@ -151,7 +153,7 @@
   }));
 
   [list, overdueList, completedList].forEach(container => container.addEventListener('click', (event) => {
-    const button = event.target.closest('.complete-button, .edit-button, .cancel-button, .delete-button, .follow-up-button, .progress-button');
+    const button = event.target.closest('.complete-button, .edit-button, .cancel-button, .delete-button, .follow-up-button, .progress-button, .completion-note-button');
     if (!button) return;
     const task = tasks.find((item) => item.id === button.dataset.id);
     if (!task) return;
@@ -161,6 +163,10 @@
     }
     if (button.classList.contains('progress-button')) {
       openProgressDialog(task);
+      return;
+    }
+    if (button.classList.contains('completion-note-button')) {
+      openCompletionDialog(task, true);
       return;
     }
     if (button.classList.contains('delete-button')) {
@@ -181,7 +187,8 @@
       task.cancelledAt = new Date().toISOString();
       if (editingId === task.id) resetForm();
     } else {
-      task.completedAt = new Date().toISOString();
+      openCompletionDialog(task, false);
+      return;
     }
     task.updatedAt = new Date().toISOString();
     saveTasks();
@@ -217,6 +224,39 @@
   });
 
   progressDialog.addEventListener('close', () => { progressEditingId = null; });
+
+  const completionDialog = document.querySelector('#completion-dialog');
+  const completionForm = document.querySelector('#completion-form');
+  const completionNoteInput = document.querySelector('#completion-note');
+  const completionNoteError = document.querySelector('#completion-note-error');
+  const completionSaveButton = document.querySelector('#completion-save');
+
+  completionForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const task = tasks.find((item) => item.id === completionEditingId);
+    if (!task) return closeCompletionDialog();
+    const note = completionNoteInput.value.trim();
+    if (!note) {
+      completionNoteInput.classList.add('invalid');
+      completionNoteInput.setAttribute('aria-invalid', 'true');
+      completionNoteInput.setAttribute('aria-describedby', 'completion-note-error');
+      completionNoteError.textContent = '어떻게 처리했는지 간단히 입력해 주세요.';
+      completionNoteInput.focus();
+      return;
+    }
+    task.completionNote = note;
+    task.completedAt = task.completedAt || new Date().toISOString();
+    task.updatedAt = new Date().toISOString();
+    saveTasks();
+    render();
+    closeCompletionDialog();
+  });
+
+  completionNoteInput.addEventListener('input', clearCompletionError);
+  completionDialog.addEventListener('close', () => {
+    completionEditingId = null;
+    clearCompletionError();
+  });
 
   window.setInterval(render, 30000);
 
@@ -350,7 +390,7 @@
 
     const completedVisible = [...completed]
       .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))
-      .filter((task) => !searchQuery || `${task.client} ${task.task}`.toLocaleLowerCase('ko-KR').includes(searchQuery));
+      .filter((task) => !searchQuery || `${task.client} ${task.task} ${task.completionNote || ''}`.toLocaleLowerCase('ko-KR').includes(searchQuery));
     completedList.replaceChildren();
     if (!completedVisible.length) {
       const message = searchQuery
@@ -401,6 +441,11 @@
       node.classList.add('work-started');
       node.querySelector('.work-progress-note').textContent = task.progressNote || '준비를 시작했어요.';
     }
+    const completionNoteRow = node.querySelector('.completion-note-row');
+    if (status === 'done') {
+      completionNoteRow.hidden = false;
+      node.querySelector('.completion-note-text').textContent = task.completionNote || '처리 완료';
+    }
     node.querySelector('.deadline-text').textContent = formatDeadline(task.deadline, status);
     const completeButton = node.querySelector('.complete-button');
     const taskActions = node.querySelector('.task-actions');
@@ -410,7 +455,10 @@
       taskActions.querySelector('.progress-button').remove();
       taskActions.querySelector('.cancel-button').remove();
       taskActions.querySelector('.complete-button').remove();
-      if (status === 'cancelled') taskActions.querySelector('.follow-up-button').remove();
+      if (status === 'cancelled') {
+        taskActions.querySelector('.follow-up-button').remove();
+        taskActions.querySelector('.completion-note-button').remove();
+      }
       const terminalTime = document.createElement('span');
       terminalTime.className = 'done-time';
       terminalTime.textContent = status === 'done'
@@ -425,8 +473,14 @@
         followUpButton.dataset.id = task.id;
         followUpButton.setAttribute('aria-label', `${task.client} 후속 업무 추가`);
       }
+      const completionNoteButton = taskActions.querySelector('.completion-note-button');
+      if (completionNoteButton) {
+        completionNoteButton.dataset.id = task.id;
+        completionNoteButton.setAttribute('aria-label', `${task.task} 처리 메모 수정`);
+      }
     } else {
       taskActions.querySelector('.follow-up-button').remove();
+      taskActions.querySelector('.completion-note-button').remove();
       taskActions.querySelectorAll('button').forEach((button) => { button.dataset.id = task.id; });
       completeButton.setAttribute('aria-label', `${task.task} 처리 완료`);
       node.querySelector('.edit-button').setAttribute('aria-label', `${task.task} 수정`);
@@ -504,6 +558,29 @@
     else progressDialog.removeAttribute('open');
   }
 
+  function openCompletionDialog(task, editingCompleted) {
+    completionEditingId = task.id;
+    completionNoteInput.value = task.completionNote || '';
+    completionSaveButton.textContent = editingCompleted ? '처리 메모 저장' : '처리 완료로 저장';
+    clearCompletionError();
+    if (completionDialog.showModal) completionDialog.showModal();
+    else completionDialog.setAttribute('open', '');
+    window.setTimeout(() => completionNoteInput.focus(), 0);
+  }
+
+  function closeCompletionDialog() {
+    completionEditingId = null;
+    if (completionDialog.close) completionDialog.close();
+    else completionDialog.removeAttribute('open');
+  }
+
+  function clearCompletionError() {
+    completionNoteInput.classList.remove('invalid');
+    completionNoteInput.removeAttribute('aria-invalid');
+    completionNoteInput.removeAttribute('aria-describedby');
+    completionNoteError.textContent = '';
+  }
+
   function startFollowUp(task) {
     resetForm();
     document.querySelector('#client').value = task.client;
@@ -539,7 +616,8 @@
             ...task,
             order: Number.isInteger(Number(task.order)) && Number(task.order) > 0 ? Number(task.order) : index + 1,
             workStartedAt: task.workStartedAt || null,
-            progressNote: String(task.progressNote || '')
+            progressNote: String(task.progressNote || ''),
+            completionNote: String(task.completionNote || '')
           }))
         : [];
     } catch {

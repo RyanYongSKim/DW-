@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ys-dw-task-list-v4';
+const CACHE_NAME = 'ys-dw-task-list-v5';
 const APP_SHELL = [
   '/',
   '/index.html',

@@ -448,3 +448,31 @@
 - `docs/prd.md`
 - `docs/design.md`
 - `docs/memory.md`
+
+## 2026-08-13 23:09:22 KST
+
+### 처리 완료 메모 기록 추가
+
+- `처리` 버튼을 누르면 업무를 바로 완료하지 않고 `어떻게 처리했나요?` 입력창을 열도록 변경했다.
+- `견적서 이메일 발송 완료`처럼 200자 이내의 처리 메모를 입력한 경우에만 업무가 처리 완료로 이동한다.
+- 처리된 업무 카드에 녹색 `처리 메모` 표기와 입력한 결과를 표시하고, 완료 시각을 유지한 채 메모만 수정할 수 있게 했다.
+- 처리 메모를 Supabase의 `completion_note` 항목에 저장해 PC와 휴대폰에서 동일하게 동기화하도록 했다.
+- 빈 처리 메모 차단, 저장과 수정, 새로고침 유지, 360px 휴대폰 폭의 화면 넘침 방지를 확인했다.
+- 기능 확인용 임시 업무와 서버 자료는 검증 후 제거했다.
+
+### 영향 파일
+
+- `index.html`
+- `assets/css/styles.css`
+- `assets/js/app.js`
+- `assets/js/supabase-sync.js`
+- `service-worker.js`
+- `dist/client/index.html`
+- `dist/client/assets/css/styles.css`
+- `dist/client/assets/js/app.js`
+- `dist/client/assets/js/supabase-sync.js`
+- `dist/client/service-worker.js`
+- `supabase/migrations/20260813140618_add_completion_note.sql`
+- `docs/prd.md`
+- `docs/design.md`
+- `docs/memory.md`

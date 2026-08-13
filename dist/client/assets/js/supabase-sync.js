@@ -113,6 +113,7 @@
       cancelled_at: task.cancelledAt ? new Date(task.cancelledAt).toISOString() : null,
       work_started_at: task.workStartedAt ? new Date(task.workStartedAt).toISOString() : null,
       progress_note: String(task.progressNote || ''),
+      completion_note: String(task.completionNote || ''),
       updated_at: task.updatedAt ? new Date(task.updatedAt).toISOString() : new Date().toISOString()
     };
   }
@@ -129,6 +130,7 @@
       cancelledAt: row.cancelled_at,
       workStartedAt: row.work_started_at,
       progressNote: row.progress_note || '',
+      completionNote: row.completion_note || '',
       updatedAt: row.updated_at
     };
   }
